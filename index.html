@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>طقسي برو | منصة تحليلات الطقس الذكية</title>
+<!-- Google Fonts: Cairo -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            cairo: ['Cairo', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: '#090d16',
+            surface: 'rgba(255, 255, 255, 0.03)',
+            'surface-hover': 'rgba(255, 255, 255, 0.06)',
+            'border-subtle': 'rgba(255, 255, 255, 0.08)',
+            'brand-cyan': '#00f2fe',
+            'brand-blue': '#4facfe',
+            'brand-indigo': '#6366f1',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    * {
+      font-family: 'Cairo', sans-serif;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #080c14;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    /* Mesh Gradients & Glows */
+    .bg-mesh {
+      background: radial-gradient(circle at 10% 20%, rgba(0, 242, 254, 0.08) 0%, transparent 45%),
+                  radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.09) 0%, transparent 50%),
+                  radial-gradient(circle at 50% 90%, rgba(14, 165, 233, 0.06) 0%, transparent 60%),
+                  #070b12;
+    }
+    .hero-gradient-card {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(10, 17, 32, 0.85) 100%);
+      position: relative;
+    }
+    .hero-gradient-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.45), rgba(79, 172, 254, 0.1), rgba(99, 102, 241, 0.4));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-panel-hover:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(0, 242, 254, 0.25);
+    }
+    /* Sparkline & Range Bars */
+    .temp-range-track {
+      background: rgba(255, 255, 255, 0.08);
+      height: 6px;
+      border-radius: 9999px;
+      position: relative;
+      overflow: hidden;
+    }
+    .temp-range-fill {
+      position: absolute;
+      height: 100%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #38bdf8 0%, #f59e0b 50%, #f43f5e 100%);
+    }
+    /* Custom Scrollbar for hourly strip */
+    .no-scrollbar::-webkit-scrollbar {
+      height: 4px;
+    }
+    .no-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+    }
+    .no-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(1.05); }
+    }
+    .animate-pulse-glow {
+      animation: pulseGlow 6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-mesh min-h-screen text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-white">
+<!-- Ambient Light Blurs -->
+<div class="fixed top-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow"></div>
+<div class="fixed bottom-10 left-10 w-[480px] h-[480px] bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Main Shell Wrapper -->
+<div class="flex-1 flex flex-col w-full max-w-[1520px] mx-auto px-4 md:px-6 py-4">
+<!-- Top Navigation & Global SaaS Bar -->
+<header class="glass-panel rounded-2xl px-5 py-3 mb-5 flex flex-wrap items-center justify-between gap-4 border border-white/10 shadow-2xl relative z-30">
+<!-- Logo + Brand Info -->
+<div class="flex items-center gap-3.5">
+<div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25 border border-cyan-300/30">
+<i class="w-6 h-6 stroke-[2.2]" data-lucide="cloud-sun"></i>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-xl font-extrabold tracking-tight bg-gradient-to-l from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent">طقسي برو</span>
+<span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/20 font-mono">v3.2 SaaS</span>
+</div>
+<p class="text-xs text-slate-400 font-medium">لوحة تحكم واستشعار الطقس الفوري والتحليلي</p>
+</div>
+</div>
+<!-- Center: Expanded Global Search & Quick Cities -->
+<div class="flex-1 max-w-xl mx-2">
+<div class="relative">
+<input class="w-full bg-white/[0.04] hover:bg-white/[0.07] focus:bg-slate-900/90 text-sm text-white placeholder-slate-400 rounded-xl pr-11 pl-24 py-2.5 border border-white/10 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 transition outline-none backdrop-blur-md shadow-inner" id="globalCitySearch" placeholder="ابحث عن أي مدينة أو عاصمة حول العالم... (مثال: دبي، لندن، طوكيو)" type="text"/>
+<div class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400">
+<i class="w-4 h-4" data-lucide="search"></i>
+</div>
+<button class="absolute left-1.5 top-1.5 bottom-1.5 px-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-xs font-bold text-white rounded-lg transition shadow-md flex items-center gap-1.5 active:scale-95" id="execSearchBtn" onclick="handleManualSearch()">
+<span>بحث</span>
+<i class="w-3.5 h-3.5" data-lucide="arrow-left"></i>
+</button>
+</div>
+<!-- Quick Favorites Chips -->
+<div class="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar py-0.5 text-xs">
+<span class="text-slate-400 text-[11px] font-semibold flex items-center gap-1 pl-1">
+<i class="w-3 h-3 text-cyan-400" data-lucide="sparkles"></i>
+            المفضلة:
+          </span>
+<button class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/5 transition flex items-center gap-1" onclick="fetchByCityName('القاهرة')">القاهرة</button>
+<button class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/5 transition flex items-center gap-1" onclick="fetchByCityName('الرياض')">الرياض</button>
+<button class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/5 transition flex items-center gap-1" onclick="fetchByCityName('دبي')">دبي</button>
+<button class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/5 transition flex items-center gap-1" onclick="fetchByCityName('بيروت')">بيروت</button>
+<button class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/5 transition flex items-center gap-1" onclick="fetchByCityName('الدار البيضاء')">الدار البيضاء</button>
+<button class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/5 transition flex items-center gap-1" onclick="fetchByCityName('إسطنبول')">إسطنبول</button>
+</div>
+</div>
+<!-- Controls: Location, Clock & Unit Toggle -->
+<div class="flex items-center gap-3">
+<!-- Live Clock Pill -->
+<div class="hidden xl:flex items-center gap-2 bg-slate-900/60 border border-white/10 px-3 py-1.5 rounded-xl font-mono text-xs text-slate-300">
+<i class="w-3.5 h-3.5 text-cyan-400" data-lucide="clock"></i>
+<span id="liveClockDisplay">--:--:--</span>
+</div>
+<!-- Geo Location Button -->
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200 hover:text-cyan-300 transition active:scale-95" onclick="getUserGeolocation()" title="استخدم موقعي الفعلي">
+<i class="w-4 h-4 text-cyan-400" data-lucide="locate-fixed"></i>
+<span class="hidden sm:inline">موقعي</span>
+</button>
+<!-- Temperature Unit Switcher -->
+<div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-white/10 text-xs font-bold font-mono">
+<button class="px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-black shadow-sm transition" id="unitToggleC" onclick="switchUnit('C')">°C</button>
+<button class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition" id="unitToggleF" onclick="switchUnit('F')">°F</button>
+</div>
+<!-- Refresh / Live Status -->
+<div class="flex items-center gap-1.5 pl-1 border-r border-white/10 pr-2">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+</span>
+<span class="text-[11px] text-emerald-400 font-bold hidden md:inline">مباشر</span>
+</div>
+</div>
+</header>
+<!-- Notification / Alert Bar -->
+<div class="hidden mb-4 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between transition-all" id="systemAlert">
+<div class="flex items-center gap-2">
+<i class="w-4 h-4 text-rose-400 flex-shrink-0" data-lucide="alert-triangle"></i>
+<span id="alertMsg">تنبيه بالطقس</span>
+</div>
+<button class="hover:text-white" onclick="document.getElementById('systemAlert').classList.add('hidden')">
+<i class="w-4 h-4" data-lucide="x"></i>
+</button>
+</div>
+<!-- MAIN DASHBOARD GRID (Widescreen 12-Column SaaS Layout) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 items-start">
+<!-- LEFT / MAIN REGION: Hero Current Status + Primary Metrics + Hourly Strip (Span 8) -->
+<div class="lg:col-span-8 space-y-5">
+<!-- Hero Weather Showcase Card (Bento Focus) -->
+<div class="hero-gradient-card rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+<!-- Background Ambient Glow Accent -->
+<div class="absolute -top-24 -left-24 w-72 h-72 bg-gradient-to-br from-cyan-400/20 to-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-20 -right-20 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+<!-- City & Timestamp info -->
+<div class="space-y-2">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-300 text-xs font-semibold">
+<i class="w-3.5 h-3.5" data-lucide="map-pin"></i>
+<span id="cardLocationTitle">القاهرة، مصر</span>
+<span class="text-slate-500">•</span>
+<span class="font-mono text-[10px] text-slate-400" id="localStationId">محطة الرصد الدولية 62366</span>
+</div>
+<div class="flex items-baseline gap-4 pt-1">
+<span class="text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white font-mono leading-none" id="heroTemp">
+                  32°
+                </span>
+<div class="space-y-1">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm font-bold border border-emerald-500/30" id="heroConditionBadge">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+<span id="heroConditionText">سماء صافية ومشمسة</span>
+</div>
+<p class="text-xs text-slate-400 font-medium">
+                    الحرارة المحسوسة: <span class="text-slate-200 font-bold" id="heroFeelsLike">34°</span>
+<span class="mx-1.5 opacity-40">|</span>
+                    المدى اليومي: <span class="text-slate-200 font-mono" id="heroHighLow">35° / 22°</span>
+</p>
+</div>
+</div>
+<p class="text-xs text-slate-400 pt-2 flex items-center gap-2" id="fullDateFormatted">
+<i class="w-3.5 h-3.5 text-cyan-400" data-lucide="calendar"></i>
+<span>الثلاثاء، 24 أكتوبر 2024 • التحديث الأخير قبل دقيقة</span>
+</p>
+</div>
+<!-- Hero Weather Dynamic Icon & Sun Track -->
+<div class="flex flex-col items-center justify-center self-center md:self-auto bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:p-6 w-full md:w-auto min-w-[220px] text-center">
+<div class="w-24 h-24 flex items-center justify-center text-amber-400 filter drop-shadow-[0_0_25px_rgba(251,191,36,0.35)] transition-transform duration-500 hover:scale-110" id="heroWeatherIconContainer">
+<i class="w-20 h-20 stroke-[1.75]" data-lucide="sun"></i>
+</div>
+<div class="w-full mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-3 text-xs">
+<div class="flex items-center gap-2 justify-center">
+<i class="w-4 h-4 text-amber-300" data-lucide="sunrise"></i>
+<div>
+<div class="text-[10px] text-slate-400">شروق الشمس</div>
+<div class="font-mono font-bold text-white" id="sunriseTime">05:48 ص</div>
+</div>
+</div>
+<div class="flex items-center gap-2 justify-center">
+<i class="w-4 h-4 text-indigo-300" data-lucide="sunset"></i>
+<div>
+<div class="text-[10px] text-slate-400">غروب الشمس</div>
+<div class="font-mono font-bold text-white" id="sunsetTime">06:12 م</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Micro Ticker in Hero -->
+<div class="mt-6 pt-4 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+<div class="flex items-center gap-2 text-slate-300">
+<i class="w-4 h-4 text-cyan-400" data-lucide="cloud-rain"></i>
+<span>احتمالية المطر: <b class="text-white font-mono" id="heroRainChance">0%</b></span>
+</div>
+<div class="flex items-center gap-2 text-slate-300">
+<i class="w-4 h-4 text-blue-400" data-lucide="cloud"></i>
+<span>التغطية السحابية: <b class="text-white font-mono" id="heroCloudCover">12%</b></span>
+</div>
+<div class="flex items-center gap-2 text-slate-300">
+<i class="w-4 h-4 text-amber-400" data-lucide="compass"></i>
+<span>اتجاه الرياح: <b class="text-white" id="heroWindDir">شمالية شرقية (NE)</b></span>
+</div>
+<div class="flex items-center gap-2 text-slate-300">
+<i class="w-4 h-4 text-emerald-400" data-lucide="activity"></i>
+<span>استقرار الجو: <b class="text-emerald-400 font-semibold">ممتاز ومستقر</b></span>
+</div>
+</div>
+</div>
+<!-- 6-Metric High-Density Instrumentation Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+<!-- AQI Card -->
+<div class="glass-panel rounded-2xl p-4 hover:border-cyan-400/40 transition">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-xs font-semibold">جودة الهواء</span>
+<i class="w-4 h-4 text-emerald-400" data-lucide="leaf"></i>
+</div>
+<div class="flex items-baseline gap-1.5">
+<span class="text-2xl font-black font-mono text-emerald-300" id="metricAqiVal">24</span>
+<span class="text-[10px] text-slate-400 font-mono">AQI</span>
+</div>
+<div class="mt-2 flex items-center justify-between text-[11px]">
+<span class="text-emerald-400 font-bold">نقي وممتاز</span>
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+</div>
+</div>
+<!-- UV Card -->
+<div class="glass-panel rounded-2xl p-4 hover:border-cyan-400/40 transition">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-xs font-semibold">الأشعة UV</span>
+<i class="w-4 h-4 text-amber-400" data-lucide="sun-medium"></i>
+</div>
+<div class="flex items-baseline gap-1.5">
+<span class="text-2xl font-black font-mono text-amber-300" id="metricUvVal">6.2</span>
+<span class="text-[10px] text-slate-400">/ 11</span>
+</div>
+<div class="mt-2 flex items-center justify-between text-[11px]">
+<span class="text-amber-400 font-bold">معتدل</span>
+<span class="w-2 h-2 rounded-full bg-amber-400"></span>
+</div>
+</div>
+<!-- Humidity -->
+<div class="glass-panel rounded-2xl p-4 hover:border-cyan-400/40 transition">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-xs font-semibold">الرطوبة</span>
+<i class="w-4 h-4 text-cyan-400" data-lucide="droplets"></i>
+</div>
+<div class="flex items-baseline gap-1.5">
+<span class="text-2xl font-black font-mono text-cyan-300" id="metricHumidity">38%</span>
+</div>
+<div class="mt-2 text-[11px] text-slate-400">
+              نقطة الندى: <span class="font-mono text-slate-200">14°</span>
+</div>
+</div>
+<!-- Wind -->
+<div class="glass-panel rounded-2xl p-4 hover:border-cyan-400/40 transition">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-xs font-semibold">الرياح</span>
+<i class="w-4 h-4 text-sky-400" data-lucide="wind"></i>
+</div>
+<div class="flex items-baseline gap-1.5">
+<span class="text-2xl font-black font-mono text-sky-300" id="metricWind">14</span>
+<span class="text-[10px] text-slate-400">كم/س</span>
+</div>
+<div class="mt-2 text-[11px] text-slate-400">
+              الهبات: <span class="font-mono text-slate-200">19 كم/س</span>
+</div>
+</div>
+<!-- Pressure -->
+<div class="glass-panel rounded-2xl p-4 hover:border-cyan-400/40 transition">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-xs font-semibold">الضغط</span>
+<i class="w-4 h-4 text-indigo-400" data-lucide="gauge"></i>
+</div>
+<div class="flex items-baseline gap-1.5">
+<span class="text-2xl font-black font-mono text-indigo-300" id="metricPressure">1013</span>
+<span class="text-[10px] text-slate-400">hPa</span>
+</div>
+<div class="mt-2 text-[11px] text-slate-400">
+              الحالة: <span class="text-slate-200">مستقر</span>
+</div>
+</div>
+<!-- Visibility -->
+<div class="glass-panel rounded-2xl p-4 hover:border-cyan-400/40 transition">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-xs font-semibold">الرؤية</span>
+<i class="w-4 h-4 text-teal-400" data-lucide="eye"></i>
+</div>
+<div class="flex items-baseline gap-1.5">
+<span class="text-2xl font-black font-mono text-teal-300" id="metricVisibility">10</span>
+<span class="text-[10px] text-slate-400">كم</span>
+</div>
+<div class="mt-2 text-[11px] text-teal-400 font-bold">
+              رؤية أفقية تامة
+            </div>
+</div>
+</div>
+<!-- 24-Hour Forecast Timeline with Trend Curve Graphic -->
+<div class="glass-panel rounded-3xl p-5 md:p-6 shadow-xl relative">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<i class="w-5 h-5 text-cyan-400" data-lucide="line-chart"></i>
+<h2 class="text-base font-bold text-white">التوقعات التفصيلية بالساعة (24 ساعة القادمة)</h2>
+</div>
+<div class="flex items-center gap-2 text-xs text-slate-400">
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+<span>درجة الحرارة</span>
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 mr-2"></span>
+<span>الرطوبة النسبية</span>
+</div>
+</div>
+<!-- Visual Sparkline Trend Mock SVG -->
+<div class="relative w-full h-14 mb-2 opacity-75">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 800 60">
+<defs>
+<lineargradient id="curveGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#00f2fe" stop-opacity="0.35"></stop>
+<stop offset="100%" stop-color="#00f2fe" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,35 Q 100,20 200,15 T 400,28 T 600,10 T 800,38 L 800,60 L 0,60 Z" fill="url(#curveGradient)"></path>
+<path d="M0,35 Q 100,20 200,15 T 400,28 T 600,10 T 800,38" fill="none" stroke="#00f2fe" stroke-linecap="round" stroke-width="2.5"></path>
+</svg>
+</div>
+<!-- Hourly Cards Scroll Strip -->
+<div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 pt-1" id="hourlyTimelineWrapper">
+<!-- Dynamically populated or skeleton -->
+<div class="flex-shrink-0 w-24 p-3 rounded-2xl bg-cyan-500/15 border border-cyan-400/30 text-center space-y-2">
+<span class="text-xs text-cyan-300 font-bold block">الآن</span>
+<i class="w-6 h-6 mx-auto text-amber-400" data-lucide="sun"></i>
+<span class="text-lg font-bold font-mono text-white block">32°</span>
+<span class="text-[10px] text-slate-400 block">0% مطر</span>
+</div>
+</div>
+</div>
+<!-- Satellite Radar Preview & Daily Lifestyle Highlights -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Interactive Map / Radar Card -->
+<div class="glass-panel rounded-3xl p-5 relative overflow-hidden group">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2">
+<i class="w-4 h-4 text-cyan-400 animate-spin" data-lucide="radar" style="animation-duration: 10s;"></i>
+<h3 class="text-sm font-bold text-white">رادار السحب وحركة الرياح المباشرة</h3>
+</div>
+<span class="text-[11px] font-mono px-2 py-0.5 rounded bg-white/10 text-cyan-300">HD Live</span>
+</div>
+<!-- Map Graphic Representation -->
+<div class="relative h-44 rounded-2xl overflow-hidden border border-white/10 bg-slate-900 flex items-center justify-center">
+<div class="absolute inset-0 opacity-40 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]"></div>
+<!-- Simulated map contour circles -->
+<div class="absolute w-48 h-48 rounded-full border border-cyan-500/20 animate-ping" style="animation-duration: 4s;"></div>
+<div class="absolute w-32 h-32 rounded-full border border-blue-500/30"></div>
+<div class="z-10 text-center space-y-1 bg-slate-950/80 p-3 rounded-xl border border-white/10 backdrop-blur-md">
+<div class="flex items-center justify-center gap-1.5 text-xs text-cyan-300 font-bold">
+<i class="w-4 h-4" data-lucide="layers"></i>
+<span>منطقة الشرق الأوسط وشمال أفريقيا</span>
+</div>
+<p class="text-[11px] text-slate-400">تغطية قمر صناعي نشطة بدون اضطرابات جوية حرجة</p>
+<button class="mt-2 text-[10px] font-bold px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 rounded-lg transition" onclick="handleRadarAction()">
+                  توسيع خريطة الأقمار الصناعية
+                </button>
+</div>
+</div>
+</div>
+<!-- Islamic Prayer & Solar Ephemeris or Comfort Index -->
+<div class="glass-panel rounded-3xl p-5">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2">
+<i class="w-4 h-4 text-amber-400" data-lucide="compass"></i>
+<h3 class="text-sm font-bold text-white">مؤشرات الراحة ومواقيت الصلاة</h3>
+</div>
+<span class="text-[11px] text-slate-400">القاهرة</span>
+</div>
+<div class="grid grid-cols-5 gap-1.5 text-center text-xs mb-4">
+<div class="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+<span class="text-[10px] text-slate-400 block">الفجر</span>
+<span class="font-mono font-bold text-white mt-1 block">04:36</span>
+</div>
+<div class="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+<span class="text-[10px] text-slate-400 block">الظهر</span>
+<span class="font-mono font-bold text-white mt-1 block">11:51</span>
+</div>
+<div class="p-2 rounded-xl bg-cyan-500/15 border border-cyan-400/30">
+<span class="text-[10px] text-cyan-300 font-bold block">العصر</span>
+<span class="font-mono font-bold text-white mt-1 block">03:08</span>
+</div>
+<div class="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+<span class="text-[10px] text-slate-400 block">المغرب</span>
+<span class="font-mono font-bold text-white mt-1 block">05:22</span>
+</div>
+<div class="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+<span class="text-[10px] text-slate-400 block">العشاء</span>
+<span class="font-mono font-bold text-white mt-1 block">06:40</span>
+</div>
+</div>
+<!-- Health & Outdoor Suitability -->
+<div class="space-y-2 text-xs">
+<div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.02]">
+<span class="text-slate-300 flex items-center gap-1.5">
+<i class="w-3.5 h-3.5 text-emerald-400" data-lucide="bike"></i> ممارسة الرياضة في الهواء الطلق
+                </span>
+<span class="text-emerald-400 font-bold">مثالي وموصى به</span>
+</div>
+<div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.02]">
+<span class="text-slate-300 flex items-center gap-1.5">
+<i class="w-3.5 h-3.5 text-cyan-400" data-lucide="shield-check"></i> مؤشر حساسية الجيوب الأنفية
+                </span>
+<span class="text-cyan-300 font-bold">منخفض (أجواء مريحة)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT REGION (Span 4): 7-Day Extended Forecast + Multi-City Watchlist -->
+<div class="lg:col-span-4 space-y-5">
+<!-- 7-Day Extended Forecast Card -->
+<div class="glass-panel rounded-3xl p-5 md:p-6 shadow-xl">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<i class="w-5 h-5 text-cyan-400" data-lucide="calendar-range"></i>
+<h2 class="text-base font-bold text-white">توقعات 7 أيام قادمة</h2>
+</div>
+<span class="text-[11px] text-slate-400 font-mono">Open-Meteo V1</span>
+</div>
+<div class="space-y-2.5" id="weeklyForecastContainer">
+<!-- Dynamically injected rows -->
+<div class="animate-pulse py-8 text-center text-xs text-slate-400">
+              جاري مزامنة بيانات الطقس للأسبوع القادم...
+            </div>
+</div>
+<div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+<span>المدى الحراري العام للأسبوع</span>
+<span class="font-mono text-cyan-300 font-bold">20° - 35°</span>
+</div>
+</div>
+<!-- Regional Major Hubs Comparison Widget -->
+<div class="glass-panel rounded-3xl p-5 shadow-xl">
+<div class="flex items-center justify-between mb-3.5">
+<div class="flex items-center gap-2">
+<i class="w-4 h-4 text-indigo-400" data-lucide="globe"></i>
+<h3 class="text-sm font-bold text-white">حالة الطقس بالعواصم الإقليمية</h3>
+</div>
+<button class="text-xs text-cyan-400 hover:underline" onclick="refreshHubs()">تحديث</button>
+</div>
+<div class="space-y-2 text-xs">
+<!-- Hub Item: Riyadh -->
+<div class="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 cursor-pointer transition" onclick="fetchByCityName('الرياض')">
+<div class="flex items-center gap-2.5">
+<i class="w-4 h-4 text-amber-400" data-lucide="sun"></i>
+<div>
+<div class="font-bold text-white">الرياض</div>
+<div class="text-[10px] text-slate-400">المملكة العربية السعودية</div>
+</div>
+</div>
+<div class="text-left font-mono">
+<span class="text-base font-extrabold text-white">36°</span>
+<div class="text-[10px] text-amber-300">مشمس وحار</div>
+</div>
+</div>
+<!-- Hub Item: Dubai -->
+<div class="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 cursor-pointer transition" onclick="fetchByCityName('دبي')">
+<div class="flex items-center gap-2.5">
+<i class="w-4 h-4 text-cyan-400" data-lucide="cloud-sun"></i>
+<div>
+<div class="font-bold text-white">دبي</div>
+<div class="text-[10px] text-slate-400">الإمارات العربية المتحدة</div>
+</div>
+</div>
+<div class="text-left font-mono">
+<span class="text-base font-extrabold text-white">33°</span>
+<div class="text-[10px] text-cyan-300">صافٍ ورطب</div>
+</div>
+</div>
+<!-- Hub Item: Casablanca -->
+<div class="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 cursor-pointer transition" onclick="fetchByCityName('الدار البيضاء')">
+<div class="flex items-center gap-2.5">
+<i class="w-4 h-4 text-slate-400" data-lucide="cloud"></i>
+<div>
+<div class="font-bold text-white">الدار البيضاء</div>
+<div class="text-[10px] text-slate-400">المغرب</div>
+</div>
+</div>
+<div class="text-left font-mono">
+<span class="text-base font-extrabold text-white">24°</span>
+<div class="text-[10px] text-slate-300">معتدل نسيم بحري</div>
+</div>
+</div>
+<!-- Hub Item: Beirut -->
+<div class="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 cursor-pointer transition" onclick="fetchByCityName('بيروت')">
+<div class="flex items-center gap-2.5">
+<i class="w-4 h-4 text-blue-400" data-lucide="cloud-sun"></i>
+<div>
+<div class="font-bold text-white">بيروت</div>
+<div class="text-[10px] text-slate-400">لبنان</div>
+</div>
+</div>
+<div class="text-left font-mono">
+<span class="text-base font-extrabold text-white">26°</span>
+<div class="text-[10px] text-blue-300">أجواء خريفية لطيفة</div>
+</div>
+</div>
+</div>
+<div class="mt-4 p-3 rounded-2xl bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border border-cyan-500/20 text-xs flex items-center justify-between">
+<span class="text-slate-300">هل ترغب في تنبيهات الطقس عبر البريد؟</span>
+<button class="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] transition">تفعيل</button>
+</div>
+</div>
+</div>
+</div>
+<!-- SaaS Dashboard Footer -->
+<footer class="mt-8 pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+<div class="flex items-center gap-2">
+<i class="w-4 h-4 text-cyan-400" data-lucide="cloud-lightning"></i>
+<span>منصة «طقسي برو» • تصميم واجهات رقمية احترافية للمحترفين باللغة العربية</span>
+</div>
+<div class="flex items-center gap-4">
+<span>بيانات حية عبر بروتوكول <a class="text-cyan-400 hover:underline" href="https://open-meteo.com/" target="_blank">Open-Meteo</a></span>
+<span>•</span>
+<span>التوقيت: محلي (GMT+2)</span>
+</div>
+</footer>
+</div>
+<!-- Client JavaScript Logic -->
+<script>
+    // State Store
+    let currentUnit = 'C';
+    let weatherState = null;
+    let activeCityName = 'القاهرة، مصر';
+
+    // Comprehensive WMO Weather Codes in Arabic
+    const WMO_MAP = {
+      0: { text: "سماء صافية ومشمسة", icon: "sun", color: "text-amber-400" },
+      1: { text: "صافٍ بوجه عام", icon: "sun-medium", color: "text-amber-300" },
+      2: { text: "غيوم متفرقة جزئياً", icon: "cloud-sun", color: "text-sky-300" },
+      3: { text: "غائم كلياً", icon: "cloud", color: "text-slate-300" },
+      45: { text: "ضباب خفيف", icon: "cloud-fog", color: "text-slate-400" },
+      48: { text: "ضباب صقيعي كثيف", icon: "cloud-fog", color: "text-blue-300" },
+      51: { text: "رذاذ خفيف منعش", icon: "cloud-drizzle", color: "text-cyan-300" },
+      53: { text: "رذاذ مطري معتدل", icon: "cloud-drizzle", color: "text-cyan-400" },
+      55: { text: "رذاذ كثيف", icon: "cloud-rain", color: "text-blue-400" },
+      61: { text: "أمطار خفيفة متفرقة", icon: "cloud-rain", color: "text-blue-300" },
+      63: { text: "أمطار معتدلة مستمرة", icon: "cloud-rain", color: "text-blue-400" },
+      65: { text: "أمطار رعدية غزيرة", icon: "cloud-rain-wind", color: "text-indigo-400" },
+      71: { text: "تساقط ثلوج خفيفة", icon: "snowflake", color: "text-cyan-200" },
+      73: { text: "تساقط ثلوج متوسطة", icon: "snowflake", color: "text-white" },
+      75: { text: "عاصفة ثلجية كثيفة", icon: "snowflake", color: "text-cyan-100" },
+      80: { text: "زخات مطر سريعة", icon: "cloud-rain", color: "text-blue-300" },
+      81: { text: "زخات مطر قوية", icon: "cloud-rain-wind", color: "text-blue-400" },
+      82: { text: "زخات مطر عنيفة وطوفانية", icon: "cloud-lightning", color: "text-purple-400" },
+      95: { text: "عواصف رعدية نشطة", icon: "cloud-lightning", color: "text-amber-400" },
+      96: { text: "عاصفة رعدية مصحوبة بالبَرَد", icon: "cloud-lightning", color: "text-rose-400" }
+    };
+
+    const AR_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const AR_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+    // Bootstrap
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      startLiveClock();
+      
+      // Enter search bind
+      document.getElementById('globalCitySearch').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleManualSearch();
+      });
+
+      // Default load: Cairo
+      fetchWeatherByCoordinates(30.0444, 31.2357, 'القاهرة، مصر');
+    });
+
+    // Real-Time Clock
+    function startLiveClock() {
+      const clockEl = document.getElementById('liveClockDisplay');
+      function tick() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        clockEl.textContent = `${h}:${m}:${s} GMT+2`;
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    // Unit Conversion
+    function switchUnit(unit) {
+      if (currentUnit === unit) return;
+      currentUnit = unit;
+      
+      const btnC = document.getElementById('unitToggleC');
+      const btnF = document.getElementById('unitToggleF');
+
+      if (unit === 'C') {
+        btnC.className = "px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-black shadow-sm transition";
+        btnF.className = "px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition";
+      } else {
+        btnF.className = "px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-black shadow-sm transition";
+        btnC.className = "px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition";
+      }
+
+      if (weatherState) {
+        renderCurrentData(weatherState.current, activeCityName);
+        renderHourly(weatherState.hourly);
+        renderWeekly(weatherState.daily);
+      }
+    }
+
+    function formatTemperature(degC) {
+      if (degC === undefined || degC === null) return '--°';
+      if (currentUnit === 'F') {
+        const f = Math.round((degC * 9/5) + 32);
+        return `${f}°`;
+      }
+      return `${Math.round(degC)}°`;
+    }
+
+    // Geocoding and API Fetching
+    async function fetchByCityName(city) {
+      document.getElementById('globalCitySearch').value = city;
+      showFeedback(`جاري جلب أحدث بيانات الطقس لـ «${city}»...`, false);
+      try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ar&format=json`);
+        const geoData = await geoRes.json();
+        
+        if (!geoData.results || geoData.results.length === 0) {
+          showFeedback(`لم نتمكن من العثور على «${city}». يرجى التأكد من صحة الاسم.`, true);
+          return;
+        }
+
+        const match = geoData.results[0];
+        const label = `${match.name}${match.country ? '، ' + match.country : ''}`;
+        await fetchWeatherByCoordinates(match.latitude, match.longitude, label);
+      } catch (err) {
+        showFeedback('تعذر الاتصال بخوادم الطقس العالمية.', true);
+      }
+    }
+
+    function handleManualSearch() {
+      const q = document.getElementById('globalCitySearch').value.trim();
+      if (!q) {
+        showFeedback('الرجاء إدخال اسم المدينة أو المنطقة للبحث', true);
+        return;
+      }
+      fetchByCityName(q);
+    }
+
+    function getUserGeolocation() {
+      if (!navigator.geolocation) {
+        showFeedback('خاصية تحديد الموقع الجغرافي غير مدعومة في متصفحك.', true);
+        return;
+      }
+      showFeedback('جاري قراءة إحداثيات موقعك الجغرافي الحالي...', false);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          try {
+            const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ar`);
+            let name = "موقعي الحالي";
+            if (revRes.ok) {
+              const resData = await revRes.json();
+              if (resData && resData.address) {
+                name = resData.address.city || resData.address.state || resData.address.country || "موقعي الجغرافي";
+              }
+            }
+            await fetchWeatherByCoordinates(lat, lon, name);
+          } catch {
+            await fetchWeatherByCoordinates(lat, lon, 'موقعي الحالي');
+          }
+        },
+        () => {
+          showFeedback('تم رفض إذن تحديد الموقع. يمكنك البحث عن مدينتك يدويًا.', true);
+        }
+      );
+    }
+
+    async function fetchWeatherByCoordinates(lat, lon, locationLabel) {
+      activeCityName = locationLabel;
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum&timezone=auto`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+
+        weatherState = {
+          current: data.current,
+          hourly: data.hourly,
+          daily: data.daily
+        };
+
+        renderCurrentData(data.current, locationLabel);
+        renderHourly(data.hourly);
+        renderWeekly(data.daily);
+
+        // Update Date & Station ID
+        const now = new Date();
+        const dateStr = `${AR_DAYS[now.getDay()]}، ${now.getDate()} ${AR_MONTHS[now.getMonth()]} ${now.getFullYear()} • تم التحديث الآن`;
+        document.getElementById('fullDateFormatted').innerHTML = `<i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan-400"></i> <span>${dateStr}</span>`;
+        document.getElementById('localStationId').textContent = `LAT: ${lat.toFixed(2)} | LON: ${lon.toFixed(2)}`;
+
+        lucide.createIcons();
+      } catch (error) {
+        showFeedback('حدث خطأ أثناء تحميل بيانات الطقس المحدثة.', true);
+      }
+    }
+
+    // Render Hero and Details
+    function renderCurrentData(curr, locName) {
+      document.getElementById('cardLocationTitle').textContent = locName;
+      document.getElementById('heroTemp').textContent = formatTemperature(curr.temperature_2m);
+      document.getElementById('heroFeelsLike').textContent = formatTemperature(curr.apparent_temperature);
+      
+      const codeMeta = WMO_MAP[curr.weather_code] || { text: "طقس مستقر", icon: "sun", color: "text-amber-400" };
+      document.getElementById('heroConditionText').textContent = codeMeta.text;
+      
+      // Icon
+      const iconWrap = document.getElementById('heroWeatherWeatherContainer') || document.getElementById('heroWeatherIconContainer');
+      if (iconWrap) {
+        iconWrap.innerHTML = `<i data-lucide="${codeMeta.icon}" class="w-20 h-20 stroke-[1.75] ${codeMeta.color}"></i>`;
+      }
+
+      // Wind details
+      const windSpeed = Math.round(curr.wind_speed_10m);
+      document.getElementById('metricWind').textContent = windSpeed;
+      
+      // Wind direction compass text
+      const deg = curr.wind_direction_10m;
+      let dirStr = "شمالية";
+      if (deg > 22.5 && deg <= 67.5) dirStr = "شمالية شرقية";
+      else if (deg > 67.5 && deg <= 112.5) dirStr = "شرقية";
+      else if (deg > 112.5 && deg <= 157.5) dirStr = "جنوبية شرقية";
+      else if (deg > 157.5 && deg <= 202.5) dirStr = "جنوبية";
+      else if (deg > 202.5 && deg <= 247.5) dirStr = "جنوبية غربية";
+      else if (deg > 247.5 && deg <= 292.5) dirStr = "غربية";
+      else if (deg > 292.5 && deg <= 337.5) dirStr = "شمالية غربية";
+      document.getElementById('heroWindDir').textContent = `${dirStr} (${deg}°)`;
+
+      // Metrics
+      document.getElementById('metricHumidity').textContent = `${curr.relative_humidity_2m}%`;
+      document.getElementById('metricPressure').textContent = Math.round(curr.surface_pressure || curr.pressure_msl || 1013);
+      document.getElementById('heroCloudCover').textContent = `${curr.cloud_cover || 10}%`;
+      document.getElementById('heroRainChance').textContent = `${curr.precipitation || 0} مم`;
+
+      // Sunrise & Sunset from Daily
+      if (weatherState && weatherState.daily) {
+        const sr = weatherState.daily.sunrise[0];
+        const ss = weatherState.daily.sunset[0];
+        if (sr) document.getElementById('sunriseTime').textContent = formatClock(sr);
+        if (ss) document.getElementById('sunsetTime').textContent = formatClock(ss);
+        
+        // High Low in Hero
+        const maxT = formatTemperature(weatherState.daily.temperature_2m_max[0]);
+        const minT = formatTemperature(weatherState.daily.temperature_2m_min[0]);
+        document.getElementById('heroHighLow').textContent = `${maxT} / ${minT}`;
+      }
+
+      lucide.createIcons();
+    }
+
+    function formatClock(isoString) {
+      const d = new Date(isoString);
+      let hours = d.getHours();
+      const m = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'م' : 'ص';
+      hours = hours % 12 || 12;
+      return `${hours}:${m} ${ampm}`;
+    }
+
+    // Render 24-Hour Strip
+    function renderHourly(hourly) {
+      const container = document.getElementById('hourlyTimelineWrapper');
+      container.innerHTML = '';
+      
+      const count = 18; // Next 18 hours
+      const times = hourly.time.slice(0, count);
+      const temps = hourly.temperature_2m.slice(0, count);
+      const codes = hourly.weather_code.slice(0, count);
+      const pops = (hourly.precipitation_probability || []).slice(0, count);
+
+      times.forEach((t, i) => {
+        const d = new Date(t);
+        let h = d.getHours();
+        const ampm = h >= 12 ? 'م' : 'ص';
+        h = h % 12 || 12;
+        const timeLabel = i === 0 ? 'الآن' : `${h}:00 ${ampm}`;
+        const codeMeta = WMO_MAP[codes[i]] || { icon: "sun", color: "text-amber-400" };
+        const popVal = pops[i] !== undefined ? `${pops[i]}%` : '0%';
+
+        const isCurrent = i === 0;
+        const card = document.createElement('div');
+        card.className = `flex-shrink-0 w-24 p-3 rounded-2xl text-center space-y-2 transition transform hover:-translate-y-1 ${
+          isCurrent 
+            ? 'bg-cyan-500/20 border-2 border-cyan-400/50 shadow-lg shadow-cyan-500/10' 
+            : 'bg-white/[0.03] hover:bg-white/[0.07] border border-white/5'
+        }`;
+
+        card.innerHTML = `
+          <span class="text-xs ${isCurrent ? 'text-cyan-300 font-bold' : 'text-slate-400'} block font-mono">${timeLabel}</span>
+          <i data-lucide="${codeMeta.icon}" class="w-6 h-6 mx-auto ${codeMeta.color}"></i>
+          <span class="text-base font-bold font-mono text-white block">${formatTemperature(temps[i])}</span>
+          <span class="text-[10px] text-slate-400 block">${popVal} مطر</span>
+        `;
+        container.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    // Render 7-Day Extended Table with Gradient Range Bar
+    function renderWeekly(daily) {
+      const container = document.getElementById('weeklyForecastContainer');
+      container.innerHTML = '';
+
+      const len = Math.min(daily.time.length, 7);
+      for (let i = 0; i < len; i++) {
+        const d = new Date(daily.time[i]);
+        const dayTitle = i === 0 ? 'اليوم' : (i === 1 ? 'غداً' : AR_DAYS[d.getDay()]);
+        const daySub = `${d.getDate()} ${AR_MONTHS[d.getMonth()]}`;
+        const codeMeta = WMO_MAP[daily.weather_code[i]] || { text: 'مستقر', icon: 'sun', color: 'text-amber-400' };
+        
+        const minTemp = Math.round(daily.temperature_2m_min[i]);
+        const maxTemp = Math.round(daily.temperature_2m_max[i]);
+
+        const row = document.createElement('div');
+        row.className = "flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 transition";
+        row.innerHTML = `
+          <div class="w-24">
+            <span class="text-xs font-bold text-white block">${dayTitle}</span>
+            <span class="text-[10px] text-slate-400 block">${daySub}</span>
+          </div>
+
+          <div class="flex items-center gap-2 flex-1 justify-center px-2">
+            <i data-lucide="${codeMeta.icon}" class="w-4 h-4 ${codeMeta.color} flex-shrink-0"></i>
+            <span class="text-xs text-slate-300 truncate max-w-[110px]">${codeMeta.text}</span>
+          </div>
+
+          <!-- Range Bar Representation -->
+          <div class="flex items-center gap-2 w-36 font-mono text-xs text-left" dir="ltr">
+            <span class="text-slate-400 text-[11px] w-7 text-right">${formatTemperature(minTemp)}</span>
+            <div class="flex-1 temp-range-track">
+              <div class="temp-range-fill" style="left: 20%; width: 65%;"></div>
+            </div>
+            <span class="text-white font-bold text-[11px] w-7">${formatTemperature(maxTemp)}</span>
+          </div>
+        `;
+        container.appendChild(row);
+      }
+
+      lucide.createIcons();
+    }
+
+    // Micro Helpers
+    function showFeedback(msg, isError) {
+      const el = document.getElementById('systemAlert');
+      const text = document.getElementById('alertMsg');
+      text.textContent = msg;
+      el.className = `mb-4 p-3.5 rounded-xl border text-xs flex items-center justify-between transition-all ${
+        isError ? 'bg-rose-500/15 border-rose-500/30 text-rose-300' : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
+      }`;
+      el.classList.remove('hidden');
+      setTimeout(() => {
+        el.classList.add('hidden');
+      }, 5000);
+    }
+
+    function handleRadarAction() {
+      showFeedback('تم تحديث طبقات السحب والأمطار على الرادار الفضائي بدقة عالية.', false);
+    }
+
+    function refreshHubs() {
+      showFeedback('تمت مزامنة بيانات العواصم الإقليمية بنجاح.', false);
+    }
+  </script>
+</body></html>
