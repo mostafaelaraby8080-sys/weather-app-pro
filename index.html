@@ -701,7 +701,7 @@
 </div>
 <div class="mt-4 p-3 rounded-2xl bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border border-cyan-500/20 text-xs flex items-center justify-between">
 <span class="text-slate-300">هل ترغب في تنبيهات الطقس عبر البريد؟</span>
-<button class="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] transition">تفعيل</button>
+<button class="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] transition" id="alertsToggle" onclick="activateWeatherAlerts()">تفعيل</button>
 </div>
 </div>
 </div>
@@ -757,6 +757,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
       startLiveClock();
+      updateAlertsButton();
       
       // Enter search bind
       document.getElementById('globalCitySearch').addEventListener('keydown', (e) => {
@@ -1068,6 +1069,49 @@
 
     function refreshHubs() {
       showFeedback('تمت مزامنة بيانات العواصم الإقليمية بنجاح.', false);
+    }
+
+    function updateAlertsButton() {
+      const button = document.getElementById('alertsToggle');
+      if (!button) return;
+
+      const subscribedEmail = localStorage.getItem('weatherAlertsEmail');
+      if (subscribedEmail) {
+        button.textContent = 'مفعّلة';
+        button.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+        button.classList.add('bg-emerald-400', 'hover:bg-emerald-300');
+        button.title = `التنبيهات مفعّلة للبريد: ${subscribedEmail}`;
+      }
+    }
+
+    function activateWeatherAlerts() {
+      const button = document.getElementById('alertsToggle');
+      const subscribedEmail = localStorage.getItem('weatherAlertsEmail');
+
+      if (subscribedEmail) {
+        localStorage.removeItem('weatherAlertsEmail');
+        if (button) {
+          button.textContent = 'تفعيل';
+          button.classList.remove('bg-emerald-400', 'hover:bg-emerald-300');
+          button.classList.add('bg-cyan-500', 'hover:bg-cyan-400');
+          button.removeAttribute('title');
+        }
+        showFeedback('تم إلغاء تفعيل تنبيهات الطقس لهذا البريد.', false);
+        return;
+      }
+
+      const email = window.prompt('اكتب بريدك الإلكتروني لتفعيل تنبيهات الطقس:');
+      if (email === null) return;
+
+      const normalizedEmail = email.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        showFeedback('يرجى إدخال بريد إلكتروني صحيح.', true);
+        return;
+      }
+
+      localStorage.setItem('weatherAlertsEmail', normalizedEmail);
+      updateAlertsButton();
+      showFeedback('تم تفعيل تنبيهات الطقس بنجاح لهذا المتصفح.', false);
     }
   </script>
 </body></html>
