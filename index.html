@@ -109,6 +109,135 @@
     .animate-pulse-glow {
       animation: pulseGlow 6s ease-in-out infinite;
     }
+
+    /* Responsive layout adjustments */
+    @media (max-width: 1023px) {
+      body {
+        min-width: 320px;
+      }
+
+      header {
+        align-items: flex-start;
+      }
+
+      header > div:nth-child(2) {
+        order: 3;
+        flex-basis: 100%;
+        max-width: none;
+        width: 100%;
+        margin-inline: 0;
+      }
+
+      header > div:nth-child(3) {
+        margin-inline-start: auto;
+      }
+
+      .hero-gradient-card {
+        padding: 1.25rem;
+      }
+
+      #heroTemp {
+        font-size: clamp(3.5rem, 11vw, 6rem);
+      }
+
+      #heroWindDir {
+        overflow-wrap: anywhere;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .max-w-\[1520px\] {
+        padding-inline: 0.75rem;
+        padding-block: 0.75rem;
+      }
+
+      header {
+        padding: 0.75rem;
+        gap: 0.75rem;
+        border-radius: 1rem;
+      }
+
+      header > div:first-child {
+        min-width: 0;
+        gap: 0.6rem;
+      }
+
+      header > div:first-child > div:last-child p {
+        display: none;
+      }
+
+      header > div:first-child > div:last-child > div {
+        flex-wrap: wrap;
+      }
+
+      header > div:first-child > div:last-child > div > span:first-child {
+        font-size: 1rem;
+      }
+
+      header > div:nth-child(3) {
+        gap: 0.35rem;
+      }
+
+      header > div:nth-child(3) > div:last-child {
+        display: none;
+      }
+
+      #globalCitySearch {
+        font-size: 0.75rem;
+        padding-inline-start: 4.5rem;
+      }
+
+      #execSearchBtn {
+        padding-inline: 0.7rem;
+      }
+
+      .hero-gradient-card {
+        padding: 1rem;
+        border-radius: 1.25rem;
+      }
+
+      .hero-gradient-card > .relative {
+        gap: 1rem;
+      }
+
+      #heroWeatherIconContainer {
+        width: 5rem;
+        height: 5rem;
+      }
+
+      #heroWeatherIconContainer svg {
+        width: 4rem;
+        height: 4rem;
+      }
+
+      .hero-gradient-card .grid-cols-2 {
+        gap: 0.5rem;
+      }
+
+      .hero-gradient-card .grid-cols-2 > div {
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .hero-gradient-card .grid-cols-2 > div > div {
+        white-space: normal;
+      }
+
+      .hero-gradient-card > .mt-6 {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-cols-2.sm\:grid-cols-3.lg\:grid-cols-6 {
+        grid-template-columns: 1fr;
+      }
+
+      .fixed.bottom-10.left-10 {
+        width: 18rem;
+        height: 18rem;
+        left: -6rem;
+        bottom: 0;
+      }
+    }
   </style>
 </head>
 <body class="bg-mesh min-h-screen text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-white">
